@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { SearchForm } from './components/SearchForm';
 import { SearchResults } from './components/SearchResults';
-import { GenerationProgress } from './components/GenerationProgress';
 import { GeneratedNotes } from './components/GeneratedNotes';
 import { ConfigPanel } from './components/ConfigPanel';
 import { searchAPI, generateAPI } from './services/api';
@@ -12,7 +11,7 @@ import type {
   GeneratedNote,
 } from './types';
 
-type AppState = 'search' | 'results' | 'generating' | 'complete';
+type AppState = 'search' | 'results' | 'complete';
 
 function App() {
   const [state, setState] = useState<AppState>('search');
@@ -21,7 +20,6 @@ function App() {
 
   const [searchId, setSearchId] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [jobId, setJobId] = useState<string | null>(null);
   const [generatedNotes, setGeneratedNotes] = useState<GeneratedNote[]>([]);
 
   const [config, setConfig] = useState({
@@ -58,25 +56,19 @@ function App() {
         model: config.model || undefined,
       });
 
-      setJobId(response.job_id);
-      setState('generating');
+      setGeneratedNotes(response.notes);
+      setState('complete');
     } catch (error: any) {
       alert(`Generation failed: ${error.message}`);
+    } finally {
       setIsGenerating(false);
     }
-  };
-
-  const handleGenerationComplete = (notes: GeneratedNote[]) => {
-    setGeneratedNotes(notes);
-    setState('complete');
-    setIsGenerating(false);
   };
 
   const handleReset = () => {
     setState('search');
     setSearchId(null);
     setSearchResults([]);
-    setJobId(null);
     setGeneratedNotes([]);
   };
 
@@ -104,14 +96,26 @@ function App() {
               onGenerate={handleGenerate}
               isGenerating={isGenerating}
             />
-          </>
-        )}
 
-        {state === 'generating' && jobId && (
-          <GenerationProgress
-            jobId={jobId}
-            onComplete={handleGenerationComplete}
-          />
+            {isGenerating && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                    <h3 className="text-xl font-bold mb-2">Generando Notas...</h3>
+                    <p className="text-gray-600 mb-4">
+                      Esto puede tomar varios minutos. Por favor espera.
+                    </p>
+                    <div className="text-sm text-gray-500">
+                      <p>• Obteniendo contenido completo de las fuentes</p>
+                      <p>• Generando artículos con IA</p>
+                      <p>• Creando contenido para redes sociales</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {state === 'complete' && (

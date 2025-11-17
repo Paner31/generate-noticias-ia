@@ -9,10 +9,6 @@ httpx==0.26.0
 # Environment variables
 python-dotenv==1.0.0
 
-# Celery for job queue
-celery==5.3.6
-redis==5.0.1
-
 # Data validation
 pydantic==2.5.3
 pydantic-settings==2.1.0

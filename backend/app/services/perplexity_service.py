@@ -19,7 +19,7 @@ class PerplexityService:
         Perform search using Perplexity API.
         Returns search results with URLs, titles, and summaries.
         """
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             # Build the search message
             search_message = self._build_search_message(search_request)
 

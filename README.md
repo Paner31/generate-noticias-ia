@@ -1,239 +1,233 @@
 # News Generator
 
-A web application that searches for news using Perplexity AI, allows you to curate and group sources, and generates professional news articles using OpenRouter (with various LLM providers).
+Sistema de generación de artículos de noticias usando AI. Busca fuentes con Perplexity y genera artículos profesionales con OpenRouter.
 
-## Features
+## Requisitos Previos
 
-- **Smart Search**: Use Perplexity AI to search for news with advanced filters
-- **Source Curation**: Select and organize search results
-- **Link Grouping**: Combine multiple sources for comprehensive articles
-- **AI Generation**: Generate professional news articles using OpenRouter
-- **Job Queue**: Background processing with Celery and Redis
-- **Configurable**: Custom prompts, token limits, and model selection
+### Opción 1: Docker (Recomendado)
+- **Docker** y **Docker Compose**
+- Claves API:
+  - [Perplexity API Key](https://www.perplexity.ai/)
+  - [OpenRouter API Key](https://openrouter.ai/)
 
-## Tech Stack
+### Opción 2: Manual
+- **Python 3.9+**
+- **Node.js 18+** y **npm**
+- Claves API:
+  - [Perplexity API Key](https://www.perplexity.ai/)
+  - [OpenRouter API Key](https://openrouter.ai/)
 
-### Backend
-- FastAPI (Python)
-- Celery (job queue)
-- Redis (message broker)
-- Perplexity API (search)
-- OpenRouter API (LLM generation)
+## Instalación y Ejecución
 
-### Frontend
-- React + TypeScript
-- Vite (build tool)
-- Tailwind CSS
-- Axios (HTTP client)
+### Opción 1: Docker (Recomendado) 🐳
 
-## Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- Redis Cloud account (free tier)
-- Perplexity API key
-- OpenRouter API key
-
-## Installation
-
-### 1. Clone or navigate to the project
+La forma más fácil y rápida de ejecutar el proyecto:
 
 ```bash
+# 1. Clonar el repositorio (si aún no lo has hecho)
+git clone <repo-url>
 cd news-generator
+
+# 2. Configurar variables de entorno
+copy .env.example backend/.env
+# Editar backend/.env y agregar tus API keys
+
+# 3. Construir y ejecutar con Docker Compose
+docker-compose up --build
+
+# O ejecutar en segundo plano:
+docker-compose up -d --build
 ```
 
-### 2. Backend Setup
+**La aplicación estará disponible en:**
+- Frontend: **http://localhost:3000**
+- Backend API: **http://localhost:8000**
+- Documentación API: **http://localhost:8000/docs**
+
+**Comandos útiles:**
+```bash
+# Ver logs
+docker-compose logs -f
+
+# Detener servicios
+docker-compose down
+
+# Reconstruir imágenes
+docker-compose build --no-cache
+```
+
+---
+
+### Opción 2: Instalación Manual
+
+#### 1. Backend (Python/FastAPI)
 
 ```bash
+# Navegar al directorio backend
 cd backend
 
-# Create virtual environment
+# Crear entorno virtual
 python -m venv venv
 
-# Activate virtual environment
-# Windows:
+# Activar entorno virtual (Windows)
 venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
 
-# Install dependencies
+# Instalar dependencias
 pip install -r requirements.txt
 
-# Create .env file from example
+# Configurar variables de entorno
 copy .env.example .env
-
-# Edit .env and add your API keys:
-# - PERPLEXITY_API_KEY=your_key_here
-# - OPENROUTER_API_KEY=your_key_here
-# - REDIS_URL=your_redis_cloud_url
 ```
 
-### 3. Redis Cloud Setup
-
-1. Go to https://redis.com/try-free/
-2. Create a free account
-3. Create a new database
-4. Copy the connection string (format: `redis://default:password@host:port`)
-5. Add it to your `.env` file as `REDIS_URL`
-
-### 4. Frontend Setup
+#### 2. Frontend (React/TypeScript)
 
 ```bash
-cd ../frontend
+# Navegar al directorio frontend
+cd frontend
 
-# Install dependencies
+# Instalar dependencias
 npm install
 
-# Create .env file
+# Configurar variables de entorno
 copy .env.example .env
 ```
 
-## Running the Application
+#### 3. Ejecución (Solo 2 Terminales)
 
-You need to run 3 services:
-
-### Terminal 1: Backend API
-
+**Terminal 1 - Backend:**
 ```bash
 cd backend
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Mac/Linux
-
-python -m uvicorn app.main:app --reload --port 8000
+venv\Scripts\activate
+python -m app.main
 ```
 
-Backend will run at: http://localhost:8000
-
-### Terminal 2: Celery Worker
-
-```bash
-cd backend
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Mac/Linux
-
-celery -A app.core.celery_app worker --loglevel=info --pool=solo
-```
-
-Note: `--pool=solo` is required for Windows. On Mac/Linux you can remove it.
-
-### Terminal 3: Frontend
-
+**Terminal 2 - Frontend:**
 ```bash
 cd frontend
 npm run dev
 ```
 
-Frontend will run at: http://localhost:5173
+Abre tu navegador en **http://localhost:5173**
 
-## Usage
+---
 
-1. **Search for News**
-   - Enter your search query
-   - Optionally configure advanced filters (time range, country, language, etc.)
-   - Click "Search"
-
-2. **Review Results**
-   - Browse the search results
-   - Select individual URLs by checking their boxes
-   - OR create groups of related URLs:
-     - Click "Create Group"
-     - Select 2+ URLs
-     - Give the group a name (optional)
-     - Click "Save Group"
-
-3. **Configure Generation (Optional)**
-   - Click "Configure" in the Settings panel
-   - Add custom prompt instructions
-   - Adjust max tokens per note
-   - Select preferred LLM model
-
-4. **Generate Notes**
-   - Click "Generate Notes"
-   - Wait for processing (you'll see progress)
-   - Review generated articles
-   - Copy to clipboard as needed
-
-## Limits
-
-- Maximum 5 notes per generation (individual URLs + groups)
-- Default 8000 tokens per note (configurable up to 16000)
-- Maximum 50 search results per query
-
-## API Documentation
-
-Once the backend is running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## Project Structure
+## Estructura del Proyecto
 
 ```
 news-generator/
 ├── backend/
 │   ├── app/
-│   │   ├── api/           # API endpoints
-│   │   ├── services/      # External service integrations
-│   │   ├── models/        # Pydantic schemas
-│   │   ├── core/          # Config, Celery, tasks
-│   │   └── main.py        # FastAPI app
+│   │   ├── api/              # Endpoints de la API
+│   │   │   ├── search.py     # Búsqueda con Perplexity
+│   │   │   └── generate.py   # Generación de notas
+│   │   ├── core/             # Configuración
+│   │   │   ├── config.py     # Variables de entorno
+│   │   │   └── session_storage.py  # Almacenamiento temporal
+│   │   ├── models/           # Schemas de Pydantic
+│   │   │   └── schemas.py
+│   │   ├── services/         # Lógica de negocio
+│   │   │   ├── perplexity_service.py    # Cliente Perplexity
+│   │   │   ├── openrouter_service.py    # Cliente OpenRouter
+│   │   │   ├── content_fetcher.py       # Obtención de contenido
+│   │   │   └── note_generator.py        # Generador de notas
+│   │   └── main.py           # Punto de entrada
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   ├── requirements.txt
-│   └── .env
+│   └── .env.example
 ├── frontend/
 │   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── services/      # API client
-│   │   ├── types/         # TypeScript types
-│   │   └── App.tsx        # Main app
+│   │   ├── components/       # Componentes React
+│   │   │   ├── SearchForm.tsx
+│   │   │   ├── SearchResults.tsx
+│   │   │   ├── GeneratedNotes.tsx
+│   │   │   └── ConfigPanel.tsx
+│   │   ├── services/         # Cliente API
+│   │   │   └── api.ts
+│   │   ├── types/            # TypeScript types
+│   │   │   └── index.ts
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── .dockerignore
 │   ├── package.json
-│   └── .env
+│   └── .env.example
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
-## Troubleshooting
+## Arquitectura
 
-### Backend won't start
-- Check that your virtual environment is activated
-- Verify all API keys in `.env` are correct
-- Ensure Redis URL is properly formatted
+### Backend
+- **FastAPI**: Framework web asíncrono
+- **Perplexity API**: Búsqueda de noticias con IA
+- **OpenRouter API**: Generación de artículos con modelos LLM
+- **Jina Reader**: Extracción de contenido completo de URLs
+- **Procesamiento síncrono**: Las notas se generan secuencialmente y se devuelven cuando están listas
 
-### Celery worker fails
-- On Windows, make sure to use `--pool=solo`
-- Check Redis connection
-- Verify Redis Cloud database is running
+### Frontend
+- **React 19**: Biblioteca UI con hooks modernos
+- **TypeScript**: Type safety
+- **Vite**: Build tool rápido
+- **Tailwind CSS**: Styling
+- **Axios**: Cliente HTTP
+- **Marked**: Renderizado de Markdown
 
-### Frontend can't connect to backend
-- Ensure backend is running on port 8000
-- Check CORS settings in `backend/app/main.py`
-- Verify `VITE_API_URL` in frontend `.env`
+### Flujo de Trabajo
+1. Usuario ingresa búsqueda → Perplexity busca fuentes
+2. Usuario selecciona URLs → Frontend envía petición
+3. Backend obtiene contenido completo → Jina Reader
+4. Backend genera artículo → OpenRouter (Claude/GPT)
+5. Backend genera contenido social → OpenRouter
+6. Frontend muestra notas completas
 
-### Generation fails
-- Check OpenRouter API key is valid
-- Verify you have credits in your OpenRouter account
-- Check Celery worker logs for errors
+## Configuración de Producción
 
-## Cost Considerations
+### Variables de Entorno
 
-- **Perplexity**: Charged per API request
-- **OpenRouter**: Charged per token (varies by model)
-- **Redis Cloud**: Free tier includes 30MB (sufficient for this app)
+**Backend (`backend/.env`):**
+```env
+PERPLEXITY_API_KEY=pplx-xxx
+OPENROUTER_API_KEY=sk-or-v1-xxx
+BACKEND_PORT=8000
+FRONTEND_URL=https://tu-dominio.com
+MAX_NOTES_PER_GENERATION=5
+DEFAULT_MAX_TOKENS=8000
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+```
 
-Monitor your usage in each service's dashboard.
+**Frontend (build arg en Docker):**
+```env
+VITE_API_URL=https://api.tu-dominio.com
+```
 
-## Future Enhancements
+### Deploy con Docker
 
-- [ ] Database persistence (PostgreSQL)
-- [ ] User authentication
-- [ ] Save and export generated notes
-- [ ] Streaming generation (real-time output)
-- [ ] Jina AI integration (full content extraction)
-- [ ] Better error handling and retry logic
-- [ ] Cost tracking dashboard
-- [ ] Export to various formats (PDF, Word, Markdown)
+Para producción, modifica `docker-compose.yml`:
 
-## License
+```yaml
+# Cambia los puertos
+ports:
+  - "443:80"  # Frontend con HTTPS
+  - "8000:8000"  # Backend
 
-MIT
+# Agrega volúmenes para SSL
+volumes:
+  - /etc/letsencrypt:/etc/letsencrypt:ro
+```
 
-## Support
+## Tecnologías
 
-For issues or questions, please open an issue in the GitHub repository.
+- **Backend:** FastAPI, Perplexity API, OpenRouter API, httpx
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Axios
+- **Deployment:** Docker, Docker Compose, Nginx
+
+## Notas Importantes
+
+- ⏱️ La generación de notas puede tomar 2-5 minutos dependiendo de la cantidad
+- 🔑 Necesitas créditos en Perplexity y OpenRouter
+- 🌐 Timeout configurado a 10 minutos para generaciones largas
+- 📦 Docker usa build multi-stage para optimizar tamaño de imágenes
+- 🔒 Las API keys nunca se exponen al frontend

@@ -1,14 +1,10 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
     # API Keys
     PERPLEXITY_API_KEY: str
     OPENROUTER_API_KEY: str
-
-    # Redis Configuration
-    REDIS_URL: str
 
     # Server Configuration
     BACKEND_PORT: int = 8000

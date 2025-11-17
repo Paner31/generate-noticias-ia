@@ -44,22 +44,14 @@ export interface GeneratedNote {
   sources: string[];
   tokens_used: number;
   model: string;
-}
-
-export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-export interface JobStatusResponse {
-  job_id: string;
-  status: JobStatus;
-  progress: number;
-  notes: GeneratedNote[];
-  error?: string;
-  created_at: string;
-  completed_at?: string;
+  image_prompt?: string;
+  instagram_copy?: string;
+  facebook_copy?: string;
+  linkedin_copy?: string;
 }
 
 export interface GenerateNotesResponse {
-  job_id: string;
-  status: JobStatus;
+  notes: GeneratedNote[];
+  total_notes: number;
   message: string;
 }

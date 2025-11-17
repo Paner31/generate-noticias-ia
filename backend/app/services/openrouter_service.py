@@ -132,6 +132,129 @@ Key guidelines:
 
         return base_prompt
 
+    async def generate_image_content(
+        self,
+        article_content: str,
+        model: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate image prompt and social media copies based on the article.
+
+        Args:
+            article_content: The generated article/note content
+            model: Model to use (defaults to settings)
+
+        Returns:
+            Dict with 'image_prompt', 'instagram_copy', 'facebook_copy', 'linkedin_copy'
+        """
+        system_prompt = """You are an expert in visual content creation and social media marketing. Generate:
+1. An image generation prompt (for DALL-E, Midjourney, Gemini, etc.)
+2. Social media copies for different platforms
+
+Guidelines:
+- Image prompt should be descriptive, visual, and concise
+- Image can include text overlay (one short sentence max)
+- Social copies should be platform-appropriate
+- Instagram: casual, emoji-friendly, hashtags
+- Facebook: conversational, engaging
+- LinkedIn: professional, value-focused"""
+
+        user_message = f"""Based on this article, create:
+
+1. IMAGE PROMPT: A detailed prompt for generating a visual (can include text overlay with ONE short sentence)
+2. INSTAGRAM: Engaging copy with emojis and hashtags (max 150 characters)
+3. FACEBOOK: Conversational post (max 200 characters)
+4. LINKEDIN: Professional post (max 200 characters)
+
+ARTICLE:
+{article_content[:2000]}
+
+Respond in this EXACT format:
+IMAGE_PROMPT: [your prompt here]
+INSTAGRAM: [your copy here]
+FACEBOOK: [your copy here]
+LINKEDIN: [your copy here]"""
+
+        payload = {
+            "model": model or settings.OPENROUTER_MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            "max_tokens": 2000,  # Increased from 1000 to allow full response
+            "temperature": 0.8
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # GLM-4.6 sometimes uses 'reasoning' field instead of 'content'
+                message = data.get("choices", [{}])[0].get("message", {})
+                content = message.get("content", "")
+
+                # If content is empty or just whitespace, try reasoning field
+                if not content or content.strip() == "":
+                    content = message.get("reasoning", "")
+
+                # Parse the response
+                parsed = self._parse_image_content(content)
+
+                return {
+                    "image_prompt": parsed.get("image_prompt", ""),
+                    "instagram_copy": parsed.get("instagram", ""),
+                    "facebook_copy": parsed.get("facebook", ""),
+                    "linkedin_copy": parsed.get("linkedin", ""),
+                    "tokens_used": data.get("usage", {}).get("total_tokens", 0)
+                }
+
+            except Exception as e:
+                print(f"[ERROR] Failed to generate image content: {e}")
+                return {
+                    "image_prompt": "",
+                    "instagram_copy": "",
+                    "facebook_copy": "",
+                    "linkedin_copy": "",
+                    "tokens_used": 0
+                }
+
+    def _parse_image_content(self, content: str) -> Dict[str, str]:
+        """Parse the structured response from image content generation."""
+        result = {
+            "image_prompt": "",
+            "instagram": "",
+            "facebook": "",
+            "linkedin": ""
+        }
+
+        lines = content.split('\n')
+        current_key = None
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith("IMAGE_PROMPT:"):
+                current_key = "image_prompt"
+                result[current_key] = line.replace("IMAGE_PROMPT:", "").strip()
+            elif line.startswith("INSTAGRAM:"):
+                current_key = "instagram"
+                result[current_key] = line.replace("INSTAGRAM:", "").strip()
+            elif line.startswith("FACEBOOK:"):
+                current_key = "facebook"
+                result[current_key] = line.replace("FACEBOOK:", "").strip()
+            elif line.startswith("LINKEDIN:"):
+                current_key = "linkedin"
+                result[current_key] = line.replace("LINKEDIN:", "").strip()
+            elif current_key and line:
+                result[current_key] += " " + line
+
+        return result
+
     async def test_connection(self) -> bool:
         """Test if OpenRouter API is accessible."""
         async with httpx.AsyncClient(timeout=10.0) as client:

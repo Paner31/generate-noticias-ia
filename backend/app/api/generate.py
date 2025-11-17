@@ -2,14 +2,11 @@ from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import (
     GenerateNotesRequest,
     GenerateNotesResponse,
-    JobStatusResponse,
-    JobStatus
+    GeneratedNote
 )
-from app.core.tasks import generate_notes_task, get_job_status, _save_job_to_redis
 from app.core.session_storage import session_storage
 from app.core.config import settings
-import uuid
-from datetime import datetime
+from app.services.note_generator import NoteGeneratorService
 
 router = APIRouter(prefix="/api/generate", tags=["generate"])
 
@@ -19,10 +16,8 @@ async def generate_notes(request: GenerateNotesRequest):
     """
     Generate news notes from selected URLs and groups.
 
-    Creates a background job that processes the selected sources
-    and generates articles using OpenRouter.
-
-    Returns a job_id that can be used to track progress.
+    Processes the selected sources and generates articles using OpenRouter.
+    Returns the generated notes directly.
     """
     # Validate search exists
     search_data = session_storage.get_search(request.search_id)
@@ -64,73 +59,27 @@ async def generate_notes(request: GenerateNotesRequest):
                     detail=f"URL not found in search results: {url}"
                 )
 
-    # Create job
-    job_id = str(uuid.uuid4())
-
-    # Initialize job in Redis BEFORE sending to Celery
-    initial_job_data = {
-        "job_id": job_id,
-        "status": "pending",
-        "progress": 0,
-        "notes": [],
-        "error": None,
-        "created_at": datetime.utcnow(),
-        "completed_at": None
-    }
-    _save_job_to_redis(job_id, initial_job_data)
-    print(f"[DEBUG] Saved initial job to Redis: {job_id}")
-
-    # Start background task
+    # Generate notes
     try:
-        generate_notes_task.apply_async(
-            kwargs={
-                "job_id": job_id,
-                "search_results": search_data["results"],
-                "selected_urls": request.selected_urls,
-                "link_groups": [g.model_dump() for g in request.link_groups],
-                "custom_prompt": request.custom_prompt,
-                "max_tokens": request.max_tokens,
-                "model": request.model
-            },
-            task_id=job_id
+        generator = NoteGeneratorService()
+        notes = await generator.generate_notes(
+            search_results=search_data["results"],
+            selected_urls=request.selected_urls,
+            link_groups=[g.model_dump() for g in request.link_groups],
+            custom_prompt=request.custom_prompt,
+            max_tokens=request.max_tokens,
+            model=request.model
         )
 
         return GenerateNotesResponse(
-            job_id=job_id,
-            status=JobStatus.PENDING,
-            message="Note generation started. Use the job_id to check status."
+            notes=[GeneratedNote(**note) for note in notes],
+            total_notes=len(notes),
+            message=f"Successfully generated {len(notes)} note(s)"
         )
 
     except Exception as e:
+        print(f"[ERROR] Failed to generate notes: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start generation: {str(e)}"
+            detail=f"Failed to generate notes: {str(e)}"
         )
-
-
-@router.get("/status/{job_id}", response_model=JobStatusResponse)
-async def get_generation_status(job_id: str):
-    """
-    Get the status of a note generation job.
-
-    Returns current progress, generated notes (if any), and errors.
-    """
-    print(f"[DEBUG] Querying job status for: {job_id}")
-    job_data = get_job_status(job_id)
-    print(f"[DEBUG] Job data retrieved: {job_data is not None}")
-
-    if not job_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found"
-        )
-
-    return JobStatusResponse(
-        job_id=job_data["job_id"],
-        status=job_data["status"],
-        progress=job_data["progress"],
-        notes=job_data["notes"],
-        error=job_data.get("error"),
-        created_at=job_data["created_at"],
-        completed_at=job_data.get("completed_at")
-    )

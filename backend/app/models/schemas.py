@@ -65,19 +65,13 @@ class GeneratedNote(BaseModel):
     sources: List[str]
     tokens_used: int
     model: str
+    image_prompt: Optional[str] = Field(default="", description="AI image generation prompt")
+    instagram_copy: Optional[str] = Field(default="", description="Instagram social media copy")
+    facebook_copy: Optional[str] = Field(default="", description="Facebook social media copy")
+    linkedin_copy: Optional[str] = Field(default="", description="LinkedIn social media copy")
 
 
 class GenerateNotesResponse(BaseModel):
-    job_id: str
-    status: JobStatus
-    message: str
-
-
-class JobStatusResponse(BaseModel):
-    job_id: str
-    status: JobStatus
-    progress: int = Field(default=0, ge=0, le=100)
-    notes: List[GeneratedNote] = Field(default=[])
-    error: Optional[str] = None
-    created_at: datetime
-    completed_at: Optional[datetime] = None
+    notes: List[GeneratedNote] = Field(..., description="Generated notes")
+    total_notes: int = Field(..., description="Total number of notes generated")
+    message: str = Field(default="Notes generated successfully")

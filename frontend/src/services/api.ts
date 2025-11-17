@@ -3,8 +3,7 @@ import type {
   SearchRequest,
   SearchResponse,
   GenerateNotesRequest,
-  GenerateNotesResponse,
-  JobStatusResponse
+  GenerateNotesResponse
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -14,6 +13,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 600000, // 600 seconds timeout (10 minutes)
 });
 
 export const searchAPI = {
@@ -35,11 +35,6 @@ export const searchAPI = {
 export const generateAPI = {
   generateNotes: async (request: GenerateNotesRequest): Promise<GenerateNotesResponse> => {
     const response = await api.post<GenerateNotesResponse>('/api/generate/', request);
-    return response.data;
-  },
-
-  getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
-    const response = await api.get<JobStatusResponse>(`/api/generate/status/${jobId}`);
     return response.data;
   },
 };

@@ -198,12 +198,22 @@ class GenerateNotesTask(Task):
                     model=model
                 )
 
+                # Generate image content based on the note
+                image_content = await openrouter.generate_image_content(
+                    article_content=note["content"],
+                    model=model
+                )
+
                 generated_notes.append({
                     "note_id": str(uuid.uuid4()),
                     "content": note["content"],
                     "sources": [url],
-                    "tokens_used": note["tokens_used"],
-                    "model": note["model"]
+                    "tokens_used": note["tokens_used"] + image_content.get("tokens_used", 0),
+                    "model": note["model"],
+                    "image_prompt": image_content.get("image_prompt", ""),
+                    "instagram_copy": image_content.get("instagram_copy", ""),
+                    "facebook_copy": image_content.get("facebook_copy", ""),
+                    "linkedin_copy": image_content.get("linkedin_copy", "")
                 })
 
             current_task += 1
@@ -250,12 +260,22 @@ class GenerateNotesTask(Task):
                     model=model
                 )
 
+                # Generate image content based on the note
+                image_content = await openrouter.generate_image_content(
+                    article_content=note["content"],
+                    model=model
+                )
+
                 generated_notes.append({
                     "note_id": str(uuid.uuid4()),
                     "content": note["content"],
                     "sources": group_urls,
-                    "tokens_used": note["tokens_used"],
-                    "model": note["model"]
+                    "tokens_used": note["tokens_used"] + image_content.get("tokens_used", 0),
+                    "model": note["model"],
+                    "image_prompt": image_content.get("image_prompt", ""),
+                    "instagram_copy": image_content.get("instagram_copy", ""),
+                    "facebook_copy": image_content.get("facebook_copy", ""),
+                    "linkedin_copy": image_content.get("linkedin_copy", "")
                 })
 
             current_task += 1
