@@ -42,58 +42,90 @@ export const GeneratedNotes: React.FC<GeneratedNotesProps> = ({ notes, onReset }
 
   const copyToClipboard = async (content: string, noteId: string) => {
     try {
-      // Convert markdown to HTML
-      const htmlContent = await marked(content);
+      // Check if clipboard API is available (HTTPS or localhost)
+      if (navigator.clipboard && navigator.clipboard.write) {
+        // Convert markdown to HTML
+        const htmlContent = await marked(content);
 
-      // Add styling to ensure black text and proper formatting for Gmail/Word
-      const styledHtml = `
-        <div style="font-family: Arial, sans-serif; font-size: 14px; color: #000000; line-height: 1.6;">
-          ${htmlContent}
-        </div>
-        <style>
-          h1, h2, h3, h4, h5, h6 { color: #000000; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
-          h1 { font-size: 2em; }
-          h2 { font-size: 1.5em; }
-          h3 { font-size: 1.17em; }
-          p { margin: 0.5em 0; color: #000000; }
-          ul, ol { margin: 0.5em 0; padding-left: 2em; }
-          li { color: #000000; margin: 0.25em 0; }
-          strong, b { font-weight: bold; color: #000000; }
-          em, i { font-style: italic; }
-          a { color: #0066cc; text-decoration: underline; }
-        </style>
-      `;
+        // Add styling to ensure black text and proper formatting for Gmail/Word
+        const styledHtml = `
+          <div style="font-family: Arial, sans-serif; font-size: 14px; color: #000000; line-height: 1.6;">
+            ${htmlContent}
+          </div>
+          <style>
+            h1, h2, h3, h4, h5, h6 { color: #000000; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+            h1 { font-size: 2em; }
+            h2 { font-size: 1.5em; }
+            h3 { font-size: 1.17em; }
+            p { margin: 0.5em 0; color: #000000; }
+            ul, ol { margin: 0.5em 0; padding-left: 2em; }
+            li { color: #000000; margin: 0.25em 0; }
+            strong, b { font-weight: bold; color: #000000; }
+            em, i { font-style: italic; }
+            a { color: #0066cc; text-decoration: underline; }
+          </style>
+        `;
 
-      // Create a ClipboardItem with both HTML and plain text
-      const blob = new Blob([styledHtml], { type: 'text/html' });
-      const textBlob = new Blob([content], { type: 'text/plain' });
+        // Create a ClipboardItem with both HTML and plain text
+        const blob = new Blob([styledHtml], { type: 'text/html' });
+        const textBlob = new Blob([content], { type: 'text/plain' });
 
-      const clipboardItem = new ClipboardItem({
-        'text/html': blob,
-        'text/plain': textBlob,
-      });
+        const clipboardItem = new ClipboardItem({
+          'text/html': blob,
+          'text/plain': textBlob,
+        });
 
-      await navigator.clipboard.write([clipboardItem]);
+        await navigator.clipboard.write([clipboardItem]);
+      } else {
+        // Fallback for HTTP (non-secure context)
+        fallbackCopyToClipboard(content);
+      }
 
       // Show success feedback
       setCopiedId(noteId);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
-      // Fallback to plain text if HTML copy fails
-      navigator.clipboard.writeText(content);
+      // Fallback to old method
+      fallbackCopyToClipboard(content);
       setCopiedId(noteId);
       setTimeout(() => setCopiedId(null), 2000);
     }
   };
 
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (err) {
+      console.error('Fallback: Could not copy text', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
   const copyPlainText = async (content: string, noteId: string) => {
     try {
-      await navigator.clipboard.writeText(content);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        // Fallback for HTTP
+        fallbackCopyToClipboard(content);
+      }
       setCopiedId(noteId);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
+      // Use fallback
+      fallbackCopyToClipboard(content);
+      setCopiedId(noteId);
+      setTimeout(() => setCopiedId(null), 2000);
     }
   };
 
